@@ -134,6 +134,41 @@ class VerifyBundleTest(unittest.TestCase):
         self.assert_codes(receipt, ["DUPLICATE_ENTRY"])
         self.assertEqual(receipt["violations"][0]["entry_index"], 3)
 
+    def test_repeated_entry_id_rejects_only_the_later_distinct_logical_key(self):
+        entries = [
+            {
+                "entry_id": "entry-001",
+                "sample_id": "sample-A",
+                "event_at": "2026-08-10T09:00:00Z",
+                "arrived_at": "2026-08-10T09:05:00Z",
+                "payload_digest": "1" * 64,
+            },
+            {
+                "entry_id": "entry-001",
+                "sample_id": "sample-B",
+                "event_at": "2026-08-11T09:00:00Z",
+                "arrived_at": "2026-08-11T09:05:00Z",
+                "payload_digest": "2" * 64,
+            },
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), entries))
+            receipt = verify_bundle(bundle, "0.1.0")
+
+        self.assert_codes(receipt, ["DUPLICATE_ENTRY"])
+        self.assertEqual(
+            receipt["violations"],
+            [
+                {
+                    "entry_index": 2,
+                    "sample_id": "sample-B",
+                    "code": "DUPLICATE_ENTRY",
+                }
+            ],
+        )
+        self.assertEqual(receipt["accepted_count"], 1)
+        self.assertEqual(receipt["rejected_count"], 1)
+
     def test_payload_mutation_after_digest_calculation_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             bundle_dir = write_bundle(Path(temporary))
