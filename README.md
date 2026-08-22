@@ -29,6 +29,10 @@ prospective-ledger verify examples/SYNTHETIC_eligible --out receipt.json
 
 The command prints `eligible` and writes `receipt.json`. The bundled example is entirely synthetic.
 
+For a complete synthetic handoff across EvidenceReach, Prospective Validation
+Ledger, and Decision Evidence Ledger, see the
+[three-tool workflow tutorial](docs/SYNTHETIC_THREE_TOOL_WORKFLOW.md).
+
 ## 6. Three input files
 
 A bundle directory contains three files:
