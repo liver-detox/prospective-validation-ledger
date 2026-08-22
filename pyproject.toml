@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prospective-validation-ledger"
+version = "0.1.0"
+description = "Verify declared point-in-time sample eligibility and late-arrival evidence."
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+license = "Apache-2.0"
+authors = [{name = "liver-detox"}]
+dependencies = []
+
+[project.scripts]
+prospective-ledger = "prospective_validation_ledger.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
