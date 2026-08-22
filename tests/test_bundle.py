@@ -34,8 +34,55 @@ class BundleLoaderTest(unittest.TestCase):
             plan = json.loads(path.read_text(encoding="utf-8"))
             plan["as_of"] = "2026-08-15T00:00:00"
             path.write_text(json.dumps(plan) + "\n", encoding="utf-8")
-            with self.assertRaisesRegex(StructuralError, "timezone"):
+            with self.assertRaises(StructuralError) as caught:
                 load_bundle(bundle_dir)
+            self.assertEqual(
+                str(caught.exception),
+                "plan.json as_of must be a timestamp",
+            )
+
+    def test_timestamp_separator_must_be_literal_uppercase_t(self):
+        injected = "2026-08-01X00:00:00+00:00"
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle_dir = write_bundle(Path(temporary))
+            path = bundle_dir / "plan.json"
+            plan = json.loads(path.read_text(encoding="utf-8"))
+            plan["frozen_at"] = injected
+            path.write_text(json.dumps(plan) + "\n", encoding="utf-8")
+
+            with self.assertRaises(StructuralError) as caught:
+                load_bundle(bundle_dir)
+
+        self.assertEqual(
+            str(caught.exception),
+            "plan.json frozen_at must be a timestamp",
+        )
+        self.assertNotIn(injected, str(caught.exception))
+
+    def test_timestamp_utc_range_errors_are_structurally_invalid(self):
+        injected_values = (
+            "0001-01-01T00:00:00+23:59",
+            "9999-12-31T23:59:59-23:59",
+        )
+        for injected in injected_values:
+            with (
+                self.subTest(injected=injected),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                bundle_dir = write_bundle(Path(temporary))
+                path = bundle_dir / "plan.json"
+                plan = json.loads(path.read_text(encoding="utf-8"))
+                plan["frozen_at"] = injected
+                path.write_text(json.dumps(plan) + "\n", encoding="utf-8")
+
+                with self.assertRaises(StructuralError) as caught:
+                    load_bundle(bundle_dir)
+
+                self.assertEqual(
+                    str(caught.exception),
+                    "plan.json frozen_at must be a timestamp",
+                )
+                self.assertNotIn(injected, str(caught.exception))
 
     def test_blank_ledger_line_is_structurally_invalid(self):
         with tempfile.TemporaryDirectory() as temporary:

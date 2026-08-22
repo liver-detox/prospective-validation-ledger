@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
             for filename in ("plan.json", "snapshot.json", "ledger.jsonl")
         )
         output = arguments.out.resolve(strict=False)
-    except OSError:
+    except (OSError, RuntimeError):
         return _error("unable to read or write requested path")
 
     if output in inputs:

@@ -64,6 +64,11 @@ class Bundle:
 
 
 _DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+_TIMESTAMP = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?"
+    r"(?:Z|[+-][0-9]{2}:[0-9]{2})\Z"
+)
 _PLAN_FIELDS = frozenset(
     {
         "schema_version",
@@ -274,12 +279,14 @@ def _non_empty_string(raw: dict[str, Any], field: str, filename: str) -> str:
 def _timestamp(raw: dict[str, Any], field: str, filename: str) -> datetime:
     text = _non_empty_string(raw, field, filename)
     try:
+        if not _TIMESTAMP.fullmatch(text):
+            raise ValueError
         value = datetime.fromisoformat(text)
-    except ValueError:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError
+        return value.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
         raise StructuralError(f"{filename} {field} must be a timestamp") from None
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise StructuralError(f"{filename} {field} must include timezone")
-    return value.astimezone(timezone.utc)
 
 
 def _sample_ids(raw: dict[str, Any], filename: str) -> tuple[str, ...]:

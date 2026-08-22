@@ -162,6 +162,64 @@ class CliTest(unittest.TestCase):
             self.assertNotIn("Traceback", stderr.getvalue())
             self.assertNotIn("\\ud800", stderr.getvalue())
 
+    def test_timestamp_overflow_preserves_output_and_has_controlled_error(self):
+        injected = "9999-12-31T23:59:59-23:59"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = write_bundle(root)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["frozen_at"] = injected
+            plan_path.write_text(json.dumps(plan) + "\n", encoding="utf-8")
+            output = root / "receipt.json"
+            output.write_bytes(b"sentinel\n")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                result = main(["verify", str(bundle), "--out", str(output)])
+
+            self.assertNotEqual(result, 0)
+            self.assertEqual(output.read_bytes(), b"sentinel\n")
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "error: invalid bundle structure\n")
+            self.assertNotIn("Traceback", stderr.getvalue())
+            self.assertNotIn(injected, stderr.getvalue())
+
+    def test_symlink_loop_preserves_output_and_has_controlled_path_error(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            loop_a = root / "loop-a"
+            loop_b = root / "loop-b"
+            loop_a.symlink_to(loop_b.name)
+            loop_b.symlink_to(loop_a.name)
+            output = root / "receipt.json"
+            output.write_bytes(b"sentinel\n")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                result = main(["verify", str(loop_a), "--out", str(output)])
+
+            self.assertNotEqual(result, 0)
+            self.assertEqual(output.read_bytes(), b"sentinel\n")
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn(
+                stderr.getvalue(),
+                (
+                    "error: unable to read or write requested path\n",
+                    "error: invalid bundle structure\n",
+                ),
+            )
+            self.assertNotIn("Traceback", stderr.getvalue())
+            self.assertNotIn(str(loop_a), stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
