@@ -45,6 +45,24 @@ class CliTest(unittest.TestCase):
             )
             self.assertEqual(plan.read_bytes(), original)
 
+    def test_output_symlink_is_replaced_without_touching_its_target(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = write_bundle(root)
+            target = root / "unrelated.txt"
+            target.write_bytes(b"sentinel\n")
+            output = root / "receipt.json"
+            output.symlink_to(target.name)
+
+            self.assertEqual(main(["verify", str(bundle), "--out", str(output)]), 0)
+
+            self.assertEqual(target.read_bytes(), b"sentinel\n")
+            self.assertFalse(output.is_symlink())
+            self.assertEqual(
+                json.loads(output.read_text(encoding="utf-8"))["status"],
+                "eligible",
+            )
+
     def test_audit_violation_writes_rejected_receipt_and_returns_nonzero(self):
         entries = [
             {

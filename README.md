@@ -10,7 +10,7 @@ The tool reads a plan, a snapshot, and a ledger. It checks the declared cutoff t
 
 ## 3. What it does not prove
 
-This tool does not provide trusted timestamping or absolute tamper prevention. It does not verify source truth, validate a model, assess prediction quality, perform investment analysis, demonstrate adoption, or provide external validation.
+This tool does not provide trusted timestamping or absolute tamper prevention. It does not verify source truth, validate a model, assess prediction quality, perform investment analysis, demonstrate adoption, or provide external validation. v0.1 is intended for small local bundles and does not enforce adversarial resource quotas.
 
 ## 4. Installation from a local GitHub checkout
 

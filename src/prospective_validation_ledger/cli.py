@@ -75,11 +75,12 @@ def main(argv: list[str] | None = None) -> int:
             (bundle_dir / filename).resolve(strict=False)
             for filename in ("plan.json", "snapshot.json", "ledger.jsonl")
         )
-        output = arguments.out.resolve(strict=False)
+        output = arguments.out
+        output_identity = output.resolve(strict=False)
     except (OSError, RuntimeError):
         return _error("unable to read or write requested path")
 
-    if output in inputs:
+    if output_identity in inputs:
         return _error("output path must not replace a bundle input")
 
     try:
