@@ -86,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
         bundle = load_bundle(bundle_dir)
     except StructuralError:
         return _error("invalid bundle structure")
+    except UnicodeEncodeError:
+        return _error("invalid Unicode input")
     except OSError:
         return _error("unable to read or write requested path")
 
@@ -93,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
         receipt = verify_bundle(bundle, __version__)
         data = receipt_bytes(receipt)
         _atomic_write(output, data)
+    except UnicodeEncodeError:
+        return _error("invalid Unicode input")
     except OSError:
         return _error("unable to read or write requested path")
 

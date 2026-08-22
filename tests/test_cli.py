@@ -136,6 +136,32 @@ class CliTest(unittest.TestCase):
             self.assertNotIn(arbitrary_text, stderr.getvalue())
             self.assertNotIn(synthetic_digest, stderr.getvalue())
 
+    def test_surrogate_input_preserves_output_and_has_controlled_error(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = write_bundle(root)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["rule_version"] = "\ud800"
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            output = root / "receipt.json"
+            output.write_bytes(b"sentinel\n")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                result = main(["verify", str(bundle), "--out", str(output)])
+
+            self.assertNotEqual(result, 0)
+            self.assertEqual(output.read_bytes(), b"sentinel\n")
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "error: invalid Unicode input\n")
+            self.assertNotIn("Traceback", stderr.getvalue())
+            self.assertNotIn("\\ud800", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
