@@ -1,39 +1,32 @@
 # Prospective Validation Ledger
 
-## 1. One-sentence purpose
+Prospective Validation Ledger gives researchers and auditors a reproducible
+eligibility check for a small validation bundle.
 
-Prospective Validation Ledger is a local command-line tool that checks declared timing and internal consistency in a small validation bundle.
+**On the first run:** verify the synthetic bundle and get either an `eligible`
+receipt or a `rejected` receipt naming the rule that failed.
 
-## 2. What it verifies
+## Quickstart
 
-The tool reads a plan, a snapshot, and a ledger. It checks the declared cutoff timing, sample membership, ledger continuity, duplicate entries, and the digests that tie the bundle together. It then writes a deterministic receipt describing whether the bundle is eligible or rejected.
-
-## 3. What it does not prove
-
-This tool does not provide trusted timestamping or absolute tamper prevention. It does not verify source truth, validate a model, assess prediction quality, perform investment analysis, demonstrate adoption, or provide external validation. v0.1 is intended for small local bundles and does not enforce adversarial resource quotas.
-
-## 4. Installation from a local GitHub checkout
-
-From a local checkout of this repository, install the package with Python 3.12, 3.13, or 3.14:
-
-```bash
-python -m pip install .
-```
-
-## 5. One-command synthetic quick start
+From a local checkout, install the package with Python 3.12, 3.13, or 3.14,
+then run the bundled synthetic example:
 
 ```bash
 python -m pip install .
 prospective-ledger verify examples/SYNTHETIC_eligible --out receipt.json
 ```
 
-The command prints `eligible` and writes `receipt.json`. The bundled example is entirely synthetic.
+The command prints `eligible` and writes `receipt.json`. The bundled example
+is entirely synthetic.
 
-For a complete synthetic handoff across EvidenceReach, Prospective Validation
-Ledger, and Decision Evidence Ledger, see the
-[three-tool workflow tutorial](docs/SYNTHETIC_THREE_TOOL_WORKFLOW.md).
+## What an eligibility receipt checks
 
-## 6. Three input files
+The tool reads a plan, a snapshot, and a ledger. It checks the declared cutoff
+timing, sample membership, ledger continuity, duplicate entries, and the
+digests that tie the bundle together. It then writes a deterministic receipt
+describing whether the bundle is eligible or rejected.
+
+### The three input files
 
 A bundle directory contains three files:
 
@@ -41,11 +34,13 @@ A bundle directory contains three files:
 - `snapshot.json` declares the snapshot timing and record count.
 - `ledger.jsonl` records one compact JSON object per evidence entry.
 
-## 7. eligible and rejected receipts
+### Eligible and rejected receipts
 
-An `eligible` receipt has no violations. A `rejected` receipt lists the rule violations found and includes accepted and rejected entry counts. Receipts include input digests and a receipt digest so repeated runs over the same valid input produce the same compact JSON output.
+An `eligible` receipt has no violations. A `rejected` receipt lists violations
+and accepted/rejected entry counts. Input and receipt digests make repeated
+runs over the same valid bundle produce the same compact JSON.
 
-## 8. Six violation codes
+## When a bundle is rejected
 
 The verifier can report these six codes:
 
@@ -56,11 +51,25 @@ The verifier can report these six codes:
 - `POST_CUTOFF_EVENT`
 - `LATE_ARRIVAL`
 
-## 9. Privacy and synthetic-data policy
+## Use it in the three-tool workflow
 
-This repository contains synthetic fixtures only. The tool does not require or upload payload content. Use pseudonymous sample IDs because rejected receipts expose IDs. No network, provider, account, holding, order, or execution adapter is included. Do not commit real or licensed datasets; see [DATA_POLICY.md](DATA_POLICY.md).
+For a complete synthetic handoff across EvidenceReach, Prospective Validation
+Ledger, and Decision Evidence Ledger, see the
+[three-tool workflow tutorial](docs/SYNTHETIC_THREE_TOOL_WORKFLOW.md).
 
-## 10. Development and test command
+## Boundaries and data handling
+
+The tool checks declared timing and internal consistency; it does not provide
+trusted timestamps, absolute tamper prevention, source truth, model validation,
+prediction quality, or investment analysis. v0.1 targets small local bundles
+and does not enforce adversarial resource quotas.
+
+Fixtures are synthetic, and the tool neither requires nor uploads payloads.
+Use pseudonymous sample IDs because rejected receipts expose IDs. No network,
+provider, account, or execution adapter is included. Do not commit real or
+licensed datasets; see [DATA_POLICY.md](DATA_POLICY.md).
+
+## Development and test command
 
 Run the complete test suite from the repository root:
 
@@ -68,6 +77,6 @@ Run the complete test suite from the repository root:
 python -m unittest discover -s tests -v
 ```
 
-## 11. License
+## License
 
 Prospective Validation Ledger is licensed under the [Apache License 2.0](LICENSE).
