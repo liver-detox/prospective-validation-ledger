@@ -1,5 +1,9 @@
 # Prospective Validation Ledger v0.1 Implementation Plan
 
+> **Development archive, not a user guide.** This retained implementation
+> record explains how v0.1 was built; use the repository [README](../../README.md)
+> for installation, verification, receipts, and common failures.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` (recommended) or
 > `superpowers:executing-plans` to implement this plan task-by-task. Steps use

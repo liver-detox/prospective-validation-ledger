@@ -85,8 +85,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         bundle = load_bundle(bundle_dir)
-    except StructuralError:
-        return _error("invalid bundle structure")
+    except StructuralError as error:
+        return _error(str(error))
     except UnicodeEncodeError:
         return _error("invalid Unicode input")
     except OSError:

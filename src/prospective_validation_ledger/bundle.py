@@ -157,7 +157,7 @@ def _parse_json_object(
     try:
         value = json.loads(
             text,
-            object_pairs_hook=_unique_object,
+            object_pairs_hook=lambda pairs: _unique_object(pairs, location),
             parse_constant=_reject_json_constant,
         )
     except StructuralError:
@@ -169,11 +169,13 @@ def _parse_json_object(
     return value
 
 
-def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+def _unique_object(
+    pairs: list[tuple[str, Any]], location: str
+) -> dict[str, Any]:
     value: dict[str, Any] = {}
     for key, item in pairs:
         if key in value:
-            raise StructuralError("duplicate JSON key")
+            raise StructuralError(f"{location} has duplicate JSON key")
         value[key] = item
     return value
 

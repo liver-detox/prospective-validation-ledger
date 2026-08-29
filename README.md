@@ -9,15 +9,25 @@ receipt or a `rejected` receipt naming the rule that failed.
 ## Quickstart
 
 From a local checkout, install the package with Python 3.12, 3.13, or 3.14,
-then run the bundled synthetic example:
+then copy and verify the bundled synthetic example:
 
 ```bash
 python -m pip install .
-prospective-ledger verify examples/SYNTHETIC_eligible --out receipt.json
+mkdir demo
+cp -R examples/SYNTHETIC_eligible demo/bundle
+prospective-ledger verify demo/bundle --out demo/receipt.json
+python -m json.tool demo/receipt.json
 ```
 
-The command prints `eligible` and writes `receipt.json`. The bundled example
-is entirely synthetic.
+The command prints `eligible` and writes `demo/receipt.json`. The final command
+shows the receipt: start with `status`, `accepted_count`, `rejected_count`, and
+`violations`. The input and receipt digests make repeat runs over the same valid
+bundle deterministic. The bundled example is entirely synthetic; copying it
+keeps the repository fixture unchanged while you inspect the three input files.
+
+To create a real bundle, begin from the copied file shapes. The three files are
+intentionally linked by digests: edit them with a process that recomputes the
+declared snapshot and ledger entry digests before verification.
 
 ## What an eligibility receipt checks
 
@@ -50,6 +60,16 @@ The verifier can report these six codes:
 - `UNKNOWN_SAMPLE`
 - `POST_CUTOFF_EVENT`
 - `LATE_ARRIVAL`
+
+### Common local failures
+
+- A structural error identifies the affected file and safe error category or
+  field, such as `plan.json has invalid JSON`. It never echoes supplied values
+  or payload content.
+- `rejected` writes a receipt and exits non-zero. Read its `violations` array;
+  this differs from a structural error, which writes no new receipt.
+- The output directory must already exist. The output path cannot replace
+  `plan.json`, `snapshot.json`, or `ledger.jsonl`.
 
 ## Use it in the three-tool workflow
 

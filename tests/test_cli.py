@@ -135,7 +135,7 @@ class CliTest(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(stdout.getvalue(), "eligible\n")
 
-    def test_structural_failure_stderr_does_not_echo_input_text_or_digest(self):
+    def test_structural_failure_reports_safe_location_without_echoing_input(self):
         arbitrary_text = "untrusted-input-text"
         synthetic_digest = "a" * 64
         with tempfile.TemporaryDirectory() as temporary:
@@ -151,8 +151,30 @@ class CliTest(unittest.TestCase):
                 result = main(["verify", str(bundle), "--out", str(output)])
 
             self.assertNotEqual(result, 0)
+            self.assertEqual(stderr.getvalue(), "error: plan.json has unknown field\n")
             self.assertNotIn(arbitrary_text, stderr.getvalue())
             self.assertNotIn(synthetic_digest, stderr.getvalue())
+
+    def test_duplicate_json_key_reports_its_file_without_echoing_input(self):
+        injected = "DUPLICATE-KEY-INJECTED"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = write_bundle(root)
+            (bundle / "plan.json").write_text(
+                '{"schema_version":"1","schema_version":"%s"}\n' % injected,
+                encoding="utf-8",
+            )
+            output = root / "receipt.json"
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                result = main(["verify", str(bundle), "--out", str(output)])
+
+            self.assertNotEqual(result, 0)
+            self.assertEqual(
+                stderr.getvalue(),
+                "error: plan.json has duplicate JSON key\n",
+            )
+            self.assertNotIn(injected, stderr.getvalue())
 
     def test_surrogate_input_preserves_output_and_has_controlled_error(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -203,7 +225,10 @@ class CliTest(unittest.TestCase):
             self.assertNotEqual(result, 0)
             self.assertEqual(output.read_bytes(), b"sentinel\n")
             self.assertEqual(stdout.getvalue(), "")
-            self.assertEqual(stderr.getvalue(), "error: invalid bundle structure\n")
+            self.assertEqual(
+                stderr.getvalue(),
+                "error: plan.json frozen_at must be a timestamp\n",
+            )
             self.assertNotIn("Traceback", stderr.getvalue())
             self.assertNotIn(injected, stderr.getvalue())
 
@@ -228,12 +253,9 @@ class CliTest(unittest.TestCase):
             self.assertNotEqual(result, 0)
             self.assertEqual(output.read_bytes(), b"sentinel\n")
             self.assertEqual(stdout.getvalue(), "")
-            self.assertIn(
+            self.assertEqual(
                 stderr.getvalue(),
-                (
-                    "error: unable to read or write requested path\n",
-                    "error: invalid bundle structure\n",
-                ),
+                "error: plan.json cannot be read\n",
             )
             self.assertNotIn("Traceback", stderr.getvalue())
             self.assertNotIn(str(loop_a), stderr.getvalue())
