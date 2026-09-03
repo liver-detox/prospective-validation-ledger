@@ -3,31 +3,37 @@
 Prospective Validation Ledger gives researchers and auditors a reproducible
 eligibility check for a small validation bundle.
 
-**On the first run:** verify the synthetic bundle and get either an `eligible`
-receipt or a `rejected` receipt naming the rule that failed.
+In an optional three-tool workflow, Prospective Validation Ledger is the cutoff
+step: does the declared bundle satisfy its timing and consistency rules?
+
+**On the first run:** create a complete synthetic bundle from a draft, then
+verify it to get either an `eligible` receipt or a `rejected` receipt naming
+the rule that failed.
 
 ## Quickstart
 
 From a local checkout, install the package with Python 3.12, 3.13, or 3.14,
-then copy and verify the bundled synthetic example:
+then copy the bundled synthetic draft, create a bundle, and verify it:
 
 ```bash
 python -m pip install .
 mkdir demo
-cp -R examples/SYNTHETIC_eligible demo/bundle
+cp -R examples/SYNTHETIC_draft demo/draft
+prospective-ledger create demo/draft --out demo/bundle
 prospective-ledger verify demo/bundle --out demo/receipt.json
 python -m json.tool demo/receipt.json
 ```
 
-The command prints `eligible` and writes `demo/receipt.json`. The final command
-shows the receipt: start with `status`, `accepted_count`, `rejected_count`, and
-`violations`. The input and receipt digests make repeat runs over the same valid
-bundle deterministic. The bundled example is entirely synthetic; copying it
-keeps the repository fixture unchanged while you inspect the three input files.
+The create command prints `created`; verification prints `eligible` and writes
+`demo/receipt.json`. The final command shows the receipt: start with `status`,
+`accepted_count`, `rejected_count`, and `violations`. The input and receipt
+digests make repeat runs over the same valid bundle deterministic. The bundled
+example is entirely synthetic; copying it keeps the repository fixture unchanged
+while you inspect the three input files.
 
-To create a real bundle, begin from the copied file shapes. The three files are
-intentionally linked by digests: edit them with a process that recomputes the
-declared snapshot and ledger entry digests before verification.
+To create a real bundle, begin from the copied draft file shapes. Drafts omit
+the derived snapshot and ledger entry digests; `create` validates their structure
+and computes those fields before verification.
 
 ## What an eligibility receipt checks
 
@@ -68,8 +74,9 @@ The verifier can report these six codes:
   or payload content.
 - `rejected` writes a receipt and exits non-zero. Read its `violations` array;
   this differs from a structural error, which writes no new receipt.
-- The output directory must already exist. The output path cannot replace
-  `plan.json`, `snapshot.json`, or `ledger.jsonl`.
+- Both commands require the output parent directory to exist. `create` requires
+  a new bundle path; `verify` cannot replace `plan.json`, `snapshot.json`, or
+  `ledger.jsonl`.
 
 ## Use it in the three-tool workflow
 

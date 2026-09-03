@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "experiment_id": "SYNTHETIC-DEMO-001",
+  "rule_version": "1",
+  "frozen_at": "2026-08-01T00:00:00Z",
+  "as_of": "2026-08-15T00:00:00Z",
+  "sample_ids": [
+    "sample-A",
+    "sample-B"
+  ]
+}

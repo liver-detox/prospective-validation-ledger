@@ -122,6 +122,43 @@ def load_bundle(bundle_dir: Path) -> Bundle:
     )
 
 
+def _complete_draft(
+    draft_dir: Path,
+) -> tuple[dict[str, Any], dict[str, Any], tuple[dict[str, Any], ...]]:
+    """Parse a draft and add only the derived fields required by a bundle."""
+    root = Path(draft_dir)
+    plan_raw = _read_json_object(root / "plan.json", "plan.json")
+    snapshot_raw = _read_json_object(root / "snapshot.json", "snapshot.json")
+    ledger_raw = _read_ledger(root / "ledger.jsonl")
+
+    _validate_fields(
+        plan_raw,
+        "plan.json",
+        _PLAN_FIELDS - {"snapshot_digest"},
+        frozenset(),
+    )
+    _parse_snapshot(snapshot_raw)
+    plan = {**plan_raw, "snapshot_digest": sha256_json(snapshot_raw)}
+    _parse_plan(plan)
+
+    previous = "GENESIS"
+    entries: list[dict[str, Any]] = []
+    for line_number, raw in ledger_raw:
+        _validate_fields(
+            raw,
+            "ledger.jsonl",
+            _ENTRY_FIELDS - {"previous_entry_digest", "entry_digest"},
+            _ENTRY_OPTIONAL_FIELDS,
+        )
+        entry = {**raw, "previous_entry_digest": previous}
+        entry["entry_digest"] = sha256_json(entry)
+        _parse_entry(entry, line_number)
+        entries.append(entry)
+        previous = entry["entry_digest"]
+
+    return plan, snapshot_raw, tuple(entries)
+
+
 def _read_json_object(path: Path, filename: str) -> dict[str, Any]:
     return _parse_json_object(_read_utf8(path, filename), filename)
 

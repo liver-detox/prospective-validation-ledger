@@ -183,3 +183,8 @@ should report `"ok":true` with one event and a head digest.
 
 Everything in this walkthrough is synthetic. It contains no account, holding,
 trade, provider credential, personal record, private path, or licensed dataset.
+
+## Optional local capture
+
+The synthetic `demo/` outputs can optionally be copied into a local-only
+[DVC capture](SYNTHETIC_THREE_TOOL_DVC_CAPTURE.md) or [MLflow capture](SYNTHETIC_THREE_TOOL_MLFLOW_CAPTURE.md).
