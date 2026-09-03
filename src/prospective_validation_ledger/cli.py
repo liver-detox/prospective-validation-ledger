@@ -178,6 +178,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         bundle_dir = arguments.bundle.resolve(strict=False)
+    except RuntimeError:
+        return _error("plan.json cannot be read")
+    except OSError:
+        return _error("unable to read or write requested path")
+
+    try:
         inputs = tuple(
             (bundle_dir / filename).resolve(strict=False)
             for filename in ("plan.json", "snapshot.json", "ledger.jsonl")
