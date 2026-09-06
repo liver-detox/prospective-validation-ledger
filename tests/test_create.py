@@ -58,6 +58,40 @@ def _write_draft(root: Path, *, late_arrival: bool = False) -> Path:
 
 
 class CreateCommandTest(unittest.TestCase):
+    def test_late_arrival_example_is_generated_and_rejected_only_for_lateness(self):
+        repository = Path(__file__).parents[1]
+        draft = repository / "examples" / "SYNTHETIC_late_arrival_draft"
+        expected_bundle = repository / "examples" / "SYNTHETIC_late_arrival"
+        expected_receipt = json.loads(
+            (
+                repository / "examples" / "SYNTHETIC_late_arrival_expected_receipt.json"
+            ).read_text(encoding="utf-8")
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            receipt_path = root / "receipt.json"
+
+            self.assertEqual(main(["create", str(draft), "--out", str(bundle)]), 0)
+            for filename in ("plan.json", "snapshot.json", "ledger.jsonl"):
+                self.assertEqual(
+                    (bundle / filename).read_bytes(),
+                    (expected_bundle / filename).read_bytes(),
+                )
+
+            self.assertNotEqual(
+                main(["verify", str(bundle), "--out", str(receipt_path)]), 0
+            )
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(receipt, expected_receipt)
+        self.assertEqual(receipt["accepted_count"], 1)
+        self.assertEqual(receipt["rejected_count"], 1)
+        self.assertEqual(
+            receipt["violations"],
+            [{"entry_index": 1, "sample_id": "sample-A", "code": "LATE_ARRIVAL"}],
+        )
+
     def test_create_makes_an_eligible_bundle_with_generated_digests(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

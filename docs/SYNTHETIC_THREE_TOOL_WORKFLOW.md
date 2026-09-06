@@ -32,9 +32,9 @@ empirical study or a shared dataset.
 Use Python 3.12, 3.13, or 3.14. From an empty working directory:
 
 ```bash
-git clone --branch v0.1.0 --depth 1 https://github.com/liver-detox/evidence-reach.git
-git clone --branch v0.1.0 --depth 1 https://github.com/liver-detox/prospective-validation-ledger.git
-git clone --branch v0.1.0 --depth 1 https://github.com/liver-detox/decision-evidence-ledger.git
+git clone --branch v0.1.1 --depth 1 https://github.com/liver-detox/evidence-reach.git
+git clone --branch v0.2.0 --depth 1 https://github.com/liver-detox/prospective-validation-ledger.git
+git clone --branch v0.2.1 --depth 1 https://github.com/liver-detox/decision-evidence-ledger.git
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -54,6 +54,9 @@ evidence-reach assess \
 ```
 
 The command creates `assessment.json`, `reachability.csv`, and `summary.md`.
+Start with `summary.md`: its decision summary compares required mature samples
+with each scenario's capacity by the end of the full collection-and-maturity
+term. Changing a later reporting horizon does not create more collection time.
 The machine-readable assessment includes the exact input `plan_sha256`, the
 calculated `required_n`, and one reachability state for every scenario and
 horizon.
@@ -78,6 +81,7 @@ digests and small summaries, and writes a payload containing no source data:
 python - <<'PY'
 import hashlib
 import json
+from importlib.metadata import version
 from pathlib import Path
 
 
@@ -97,7 +101,7 @@ payload = {
     "evidence_references": [
         {
             "tool": "EvidenceReach",
-            "tool_version": "0.1.0",
+            "tool_version": version("evidence-reach"),
             "artifact": "assessment.json",
             "artifact_sha256": hashlib.sha256(assessment_raw).hexdigest(),
             "plan_sha256": assessment["plan_sha256"],

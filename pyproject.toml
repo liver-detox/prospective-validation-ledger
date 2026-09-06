@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prospective-validation-ledger"
-version = "0.1.0"
+version = "0.2.0"
 description = "Verify declared point-in-time sample eligibility and late-arrival evidence."
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -17,3 +17,29 @@ prospective-ledger = "prospective_validation_ledger.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+"share/prospective-validation-ledger/examples/SYNTHETIC_draft" = [
+  "examples/SYNTHETIC_draft/plan.json",
+  "examples/SYNTHETIC_draft/snapshot.json",
+  "examples/SYNTHETIC_draft/ledger.jsonl",
+]
+"share/prospective-validation-ledger/examples/SYNTHETIC_eligible" = [
+  "examples/SYNTHETIC_eligible/plan.json",
+  "examples/SYNTHETIC_eligible/snapshot.json",
+  "examples/SYNTHETIC_eligible/ledger.jsonl",
+]
+"share/prospective-validation-ledger/examples/SYNTHETIC_late_arrival_draft" = [
+  "examples/SYNTHETIC_late_arrival_draft/plan.json",
+  "examples/SYNTHETIC_late_arrival_draft/snapshot.json",
+  "examples/SYNTHETIC_late_arrival_draft/ledger.jsonl",
+]
+"share/prospective-validation-ledger/examples/SYNTHETIC_late_arrival" = [
+  "examples/SYNTHETIC_late_arrival/plan.json",
+  "examples/SYNTHETIC_late_arrival/snapshot.json",
+  "examples/SYNTHETIC_late_arrival/ledger.jsonl",
+]
+"share/prospective-validation-ledger/examples" = [
+  "examples/SYNTHETIC_expected_receipt.json",
+  "examples/SYNTHETIC_late_arrival_expected_receipt.json",
+]

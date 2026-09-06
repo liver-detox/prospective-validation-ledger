@@ -27,6 +27,20 @@ class PublicBoundaryTest(unittest.TestCase):
         self.assertIn("SYNTHETIC", text)
         self.assertNotIn("/Users/", text)
 
+    def test_packaging_contract_lists_every_synthetic_example(self):
+        root = Path(__file__).parents[1]
+        package_config = (root / "pyproject.toml").read_text(encoding="utf-8")
+        manifest = (root / "MANIFEST.in").read_text(encoding="utf-8")
+        fixtures = sorted(
+            path.relative_to(root).as_posix()
+            for path in (root / "examples").rglob("*")
+            if path.is_file()
+        )
+
+        self.assertIn("recursive-include examples *.json *.jsonl", manifest)
+        for fixture in fixtures:
+            self.assertIn(fixture, package_config)
+
 
 if __name__ == "__main__":
     unittest.main()

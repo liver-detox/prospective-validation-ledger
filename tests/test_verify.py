@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from prospective_validation_ledger import __version__
 from prospective_validation_ledger.bundle import load_bundle
 from prospective_validation_ledger.canonical import canonical_json_bytes, sha256_json
 from prospective_validation_ledger.verify import verify_bundle
@@ -31,8 +32,8 @@ class VerifyBundleTest(unittest.TestCase):
     def test_valid_bundle_has_deterministic_eligible_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             bundle = load_bundle(write_bundle(Path(temporary)))
-            first = verify_bundle(bundle, "0.1.0")
-            second = verify_bundle(bundle, "0.1.0")
+            first = verify_bundle(bundle, __version__)
+            second = verify_bundle(bundle, __version__)
             self.assertEqual(first, second)
             self.assertEqual(first["status"], "eligible")
             self.assertEqual(first["accepted_count"], 2)
@@ -40,7 +41,7 @@ class VerifyBundleTest(unittest.TestCase):
             self.assertEqual(first["violations"], [])
             self.assertEqual(
                 first["receipt_digest"],
-                "14e00f8a5e683c3e87965b02069fb5c81243576ba66b32a500f6825b6aa4964e",
+                "0c9efe5552d09c0441d8f7cd1ff397d4f0e523c74961ca4c2c9c6d66d45483e5",
             )
 
     def test_late_arrival_rejects_the_ledger_line(self):
@@ -342,9 +343,9 @@ class VerifyBundleTest(unittest.TestCase):
     def test_tool_version_changes_the_receipt_digest(self):
         with tempfile.TemporaryDirectory() as temporary:
             bundle = load_bundle(write_bundle(Path(temporary)))
-            first = verify_bundle(bundle, "0.1.0")
-            second = verify_bundle(bundle, "0.1.1")
+            first = verify_bundle(bundle, "0.2.0")
+            second = verify_bundle(bundle, "0.2.1")
 
-        self.assertEqual(first["tool_version"], "0.1.0")
-        self.assertEqual(second["tool_version"], "0.1.1")
+        self.assertEqual(first["tool_version"], "0.2.0")
+        self.assertEqual(second["tool_version"], "0.2.1")
         self.assertNotEqual(first["receipt_digest"], second["receipt_digest"])

@@ -56,6 +56,25 @@ An `eligible` receipt has no violations. A `rejected` receipt lists violations
 and accepted/rejected entry counts. Input and receipt digests make repeated
 runs over the same valid bundle produce the same compact JSON.
 
+### A late-arrival rejection path
+
+The supplied late-arrival fixture is also fully synthetic. Its first event
+occurred before the declared cutoff, but reached the ledger after it. Create it
+from the draft and verify it as follows:
+
+```bash
+cp -R examples/SYNTHETIC_late_arrival_draft demo/late-draft
+prospective-ledger create demo/late-draft --out demo/late-bundle
+prospective-ledger verify demo/late-bundle --out demo/late-receipt.json || true
+python -m json.tool demo/late-receipt.json
+```
+
+The command prints `rejected`; the receipt has one `LATE_ARRIVAL` violation.
+The event time and arrival time are deliberately distinct: an event occurring
+before the cutoff is not enough when its evidence arrived after it. Rejection
+does not relax the cutoff or rewrite history—retain the bundle and receipt,
+then include the evidence in the next defined validation round when applicable.
+
 ## When a bundle is rejected
 
 The verifier can report these six codes:
@@ -84,18 +103,6 @@ For a complete synthetic handoff across EvidenceReach, Prospective Validation
 Ledger, and Decision Evidence Ledger, see the
 [three-tool workflow tutorial](docs/SYNTHETIC_THREE_TOOL_WORKFLOW.md).
 
-## Boundaries and data handling
-
-The tool checks declared timing and internal consistency; it does not provide
-trusted timestamps, absolute tamper prevention, source truth, model validation,
-prediction quality, or investment analysis. v0.1 targets small local bundles
-and does not enforce adversarial resource quotas.
-
-Fixtures are synthetic, and the tool neither requires nor uploads payloads.
-Use pseudonymous sample IDs because rejected receipts expose IDs. No network,
-provider, account, or execution adapter is included. Do not commit real or
-licensed datasets; see [DATA_POLICY.md](DATA_POLICY.md).
-
 ## Development and test command
 
 Run the complete test suite from the repository root:
@@ -107,3 +114,11 @@ python -m unittest discover -s tests -v
 ## License
 
 Prospective Validation Ledger is licensed under the [Apache License 2.0](LICENSE).
+
+## Boundaries
+
+This local check verifies declared timing and internal consistency, not trusted
+timestamps, source truth, model quality, investment analysis, or adversarial
+resource limits. Fixtures are synthetic; no payload upload, network, account,
+or execution adapter is included. Use pseudonymous IDs and do not commit real
+or licensed data; see [DATA_POLICY.md](DATA_POLICY.md).

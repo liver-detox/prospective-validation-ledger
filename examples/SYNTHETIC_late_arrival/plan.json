@@ -1,0 +1,12 @@
+{
+  "as_of": "2026-08-15T00:00:00Z",
+  "experiment_id": "SYNTHETIC-LATE-ARRIVAL-001",
+  "frozen_at": "2026-08-01T00:00:00Z",
+  "rule_version": "1",
+  "sample_ids": [
+    "sample-A",
+    "sample-B"
+  ],
+  "schema_version": "1",
+  "snapshot_digest": "5f015e2aafd94d2f2e6525f245a45bb2fa68019996ab7d3143cd48b59e420edf"
+}

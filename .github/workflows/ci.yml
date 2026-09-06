@@ -23,3 +23,36 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: prospective-ledger verify examples/SYNTHETIC_eligible --out "$RUNNER_TEMP/receipt.json"
       - run: cmp examples/SYNTHETIC_expected_receipt.json "$RUNNER_TEMP/receipt.json"
+      - run: |
+          if prospective-ledger verify examples/SYNTHETIC_late_arrival --out "$RUNNER_TEMP/late-receipt.json"; then
+            echo "late-arrival fixture unexpectedly passed" >&2
+            exit 1
+          fi
+          cmp examples/SYNTHETIC_late_arrival_expected_receipt.json "$RUNNER_TEMP/late-receipt.json"
+      - run: |
+          package_source="$RUNNER_TEMP/package-source"
+          mkdir "$package_source"
+          cp -R README.md DATA_POLICY.md LICENSE MANIFEST.in pyproject.toml src examples "$package_source"
+          python -m pip wheel --no-deps --wheel-dir "$RUNNER_TEMP/dist" "$package_source"
+          python - "$RUNNER_TEMP/dist" <<'PY'
+          from pathlib import Path
+          import sys
+          from zipfile import ZipFile
+
+          wheel = next(Path(sys.argv[1]).glob("prospective_validation_ledger-*.whl"))
+          expected = {
+              "examples/SYNTHETIC_draft/plan.json",
+              "examples/SYNTHETIC_eligible/ledger.jsonl",
+              "examples/SYNTHETIC_expected_receipt.json",
+              "examples/SYNTHETIC_late_arrival_draft/ledger.jsonl",
+              "examples/SYNTHETIC_late_arrival/ledger.jsonl",
+              "examples/SYNTHETIC_late_arrival_expected_receipt.json",
+          }
+          with ZipFile(wheel) as archive:
+              names = set(archive.namelist())
+          missing = [
+              item for item in expected if not any(name.endswith(item) for name in names)
+          ]
+          if missing:
+              raise SystemExit(f"wheel is missing public examples: {missing}")
+          PY
