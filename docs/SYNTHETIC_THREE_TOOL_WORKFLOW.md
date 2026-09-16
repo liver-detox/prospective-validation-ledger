@@ -74,6 +74,13 @@ accepted and rejected counts, rule and tool versions, and a `receipt_digest`.
 
 ## 4. Build the decision payload
 
+The decision and reason code below are manually chosen for this tutorial's
+all-unreachable fixtures. When adapting it, select the supply scenario you
+intend to use, inspect that scenario's result and the validation receipt, then
+set your own decision and reason codes. The deduplicated `scenario_states`
+list only summarizes which states occur; it does not retain their scenario
+names or select an action for you. Keep the upstream artifacts for review.
+
 This standard-library snippet reads both outputs, records their exact file
 digests and small summaries, and writes a payload containing no source data:
 
