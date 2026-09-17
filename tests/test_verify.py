@@ -29,7 +29,7 @@ class VerifyBundleTest(unittest.TestCase):
             expected,
         )
 
-    def test_valid_bundle_has_deterministic_eligible_receipt(self):
+    def test_legacy_bundle_without_coverage_remains_eligible_and_is_labeled(self):
         with tempfile.TemporaryDirectory() as temporary:
             bundle = load_bundle(write_bundle(Path(temporary)))
             first = verify_bundle(bundle, __version__)
@@ -39,10 +39,107 @@ class VerifyBundleTest(unittest.TestCase):
             self.assertEqual(first["accepted_count"], 2)
             self.assertEqual(first["rejected_count"], 0)
             self.assertEqual(first["violations"], [])
+            self.assertEqual(first["coverage"], {"state": "not_declared"})
             self.assertEqual(
                 first["receipt_digest"],
-                "0c9efe5552d09c0441d8f7cd1ff397d4f0e523c74961ca4c2c9c6d66d45483e5",
+                "c2f1dcf60dd599c8c7dc4d27450259ea77264b862c8ba348a058a1414846b984",
             )
+
+    def test_complete_coverage_allows_zero_expected_entries(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-15T08:00:00+08:00",
+            "expected_entry_count": 0,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), [], coverage))
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assertEqual(receipt["status"], "eligible")
+        self.assertEqual(receipt["accepted_count"], 0)
+        self.assertEqual(receipt["rejected_count"], 0)
+        self.assertEqual(receipt["coverage"], coverage)
+
+    def test_expected_entry_count_is_independent_of_snapshot_record_count(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-15T00:00:00Z",
+            "expected_entry_count": 1,
+        }
+        entries = [
+            {
+                "entry_id": "entry-001",
+                "sample_id": "sample-A",
+                "event_at": "2026-08-10T09:00:00Z",
+                "arrived_at": "2026-08-10T09:05:00Z",
+                "payload_digest": "1" * 64,
+            }
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(
+                write_bundle(Path(temporary), entries, coverage, record_count=99)
+            )
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assertEqual(receipt["status"], "eligible")
+        self.assertEqual(bundle.snapshot.record_count, 99)
+        self.assertEqual(receipt["coverage"], coverage)
+
+    def test_incomplete_coverage_is_a_global_rejection(self):
+        coverage = {
+            "state": "incomplete",
+            "through": "2026-08-14T00:00:00Z",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), coverage=coverage))
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assert_codes(receipt, ["COVERAGE_INCOMPLETE"])
+        self.assertEqual(receipt["accepted_count"], 2)
+        self.assertEqual(receipt["rejected_count"], 0)
+        self.assertEqual(receipt["coverage"], coverage)
+
+    def test_unavailable_source_is_a_global_rejection(self):
+        coverage = {"state": "unavailable"}
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), coverage=coverage))
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assert_codes(receipt, ["SOURCE_UNAVAILABLE"])
+        self.assertEqual(receipt["coverage"], coverage)
+
+    def test_complete_coverage_before_cutoff_is_rejected(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-14T23:59:59Z",
+            "expected_entry_count": 2,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), coverage=coverage))
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assert_codes(receipt, ["COVERAGE_BEFORE_CUTOFF"])
+
+    def test_complete_coverage_count_mismatch_is_rejected(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-15T00:00:00Z",
+            "expected_entry_count": 2,
+        }
+        entries = [
+            {
+                "entry_id": "entry-001",
+                "sample_id": "sample-A",
+                "event_at": "2026-08-10T09:00:00Z",
+                "arrived_at": "2026-08-10T09:05:00Z",
+                "payload_digest": "1" * 64,
+            }
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), entries, coverage))
+            receipt = verify_bundle(bundle, "0.3.0")
+
+        self.assert_codes(receipt, ["COVERAGE_COUNT_MISMATCH"])
 
     def test_late_arrival_rejects_the_ledger_line(self):
         entries = [

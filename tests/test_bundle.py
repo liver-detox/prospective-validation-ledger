@@ -1,9 +1,10 @@
 import json
+from datetime import datetime, timezone
 import tempfile
 import unittest
 from pathlib import Path
 
-from prospective_validation_ledger.bundle import StructuralError, load_bundle
+from prospective_validation_ledger.bundle import Snapshot, StructuralError, load_bundle
 from tests.support import write_bundle
 
 
@@ -240,6 +241,75 @@ class BundleLoaderTest(unittest.TestCase):
             path.write_text(json.dumps(snapshot) + "\n", encoding="utf-8")
             bundle = load_bundle(bundle_dir)
         self.assertEqual(bundle.snapshot.raw["field_digest"], "a" * 64)
+
+    def test_coverage_contract_rejects_malformed_or_ambiguous_declarations(self):
+        marker = "SYNTHETIC-COVERAGE-INJECTED"
+        cases = (
+            "coverage is not an object",
+            {"state": "invalid-state"},
+            {"state": "complete", "through": "2026-08-15T00:00:00Z"},
+            {
+                "state": "incomplete",
+                "through": "2026-08-14T00:00:00Z",
+                "expected_entry_count": 1,
+            },
+            {"state": "unavailable", "through": "2026-08-15T00:00:00Z"},
+            {
+                "state": "complete",
+                "through": marker,
+                "expected_entry_count": 2,
+            },
+            {
+                "state": "complete",
+                "through": "2026-08-15T00:00:00Z",
+                "expected_entry_count": True,
+            },
+        )
+        for coverage in cases:
+            with self.subTest(coverage=type(coverage).__name__), tempfile.TemporaryDirectory() as temporary:
+                bundle_dir = write_bundle(Path(temporary))
+                snapshot_path = bundle_dir / "snapshot.json"
+                snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+                snapshot["coverage"] = coverage
+                snapshot_path.write_text(json.dumps(snapshot) + "\n", encoding="utf-8")
+
+                with self.assertRaises(StructuralError) as caught:
+                    load_bundle(bundle_dir)
+
+                self.assertNotIn(marker, str(caught.exception))
+
+    def test_complete_coverage_accepts_an_equivalent_timezone_cutoff(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-15T08:00:00+08:00",
+            "expected_entry_count": 2,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = load_bundle(write_bundle(Path(temporary), coverage=coverage))
+        self.assertEqual(bundle.snapshot.coverage.through, bundle.plan.as_of)
+
+    def test_coverage_cannot_claim_a_future_snapshot_horizon(self):
+        coverage = {
+            "state": "complete",
+            "through": "2026-08-15T00:00:01Z",
+            "expected_entry_count": 2,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle_dir = write_bundle(Path(temporary))
+            snapshot_path = bundle_dir / "snapshot.json"
+            snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            snapshot["coverage"] = coverage
+            snapshot_path.write_text(json.dumps(snapshot) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(StructuralError, "coverage through is later"):
+                load_bundle(bundle_dir)
+
+    def test_snapshot_dataclass_keeps_its_existing_constructor_shape(self):
+        snapshot = Snapshot(
+            raw={},
+            as_of=datetime(2026, 8, 15, tzinfo=timezone.utc),
+            record_count=0,
+        )
+        self.assertIsNone(snapshot.coverage)
 
     def test_invalid_field_digest_is_structurally_invalid(self):
         with tempfile.TemporaryDirectory() as temporary:

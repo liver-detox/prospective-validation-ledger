@@ -33,8 +33,8 @@ Use Python 3.12, 3.13, or 3.14. From an empty working directory:
 
 ```bash
 git clone --branch v0.1.1 --depth 1 https://github.com/liver-detox/evidence-reach.git
-git clone --branch v0.2.0 --depth 1 https://github.com/liver-detox/prospective-validation-ledger.git
-git clone --branch v0.2.1 --depth 1 https://github.com/liver-detox/decision-evidence-ledger.git
+git clone --branch v0.3.0 --depth 1 https://github.com/liver-detox/prospective-validation-ledger.git
+git clone --branch v0.2.2 --depth 1 https://github.com/liver-detox/decision-evidence-ledger.git
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -70,7 +70,15 @@ prospective-ledger verify \
 ```
 
 The command prints `eligible`. Its receipt includes the input digests,
-accepted and rejected counts, rule and tool versions, and a `receipt_digest`.
+accepted and rejected counts, rule and tool versions, declared `coverage`, and
+a `receipt_digest`. This fixture declares complete coverage through the cutoff
+and an expected ledger-entry count of two. Those are caller declarations, not
+independent proof that every source was obtained.
+
+Legacy bundles without coverage still receive the original timing checks, but
+their receipt says `coverage.state = not_declared`. Do not interpret that state
+as complete coverage. The README's incomplete-coverage example demonstrates a
+rejected bundle whose supplied entries individually pass the timing checks.
 
 ## 4. Build the decision payload
 
@@ -125,6 +133,7 @@ payload = {
             "experiment_id": receipt["experiment_id"],
             "receipt_digest": receipt["receipt_digest"],
             "status": receipt["status"],
+            "coverage": receipt["coverage"],
             "accepted_count": receipt["accepted_count"],
             "rejected_count": receipt["rejected_count"],
         },
@@ -186,11 +195,20 @@ should report `"ok":true` with one event and a head digest.
 
 - EvidenceReach makes the sample-size and supply assumptions inspectable; its
   reachability state is scenario arithmetic, not a forecast.
-- Prospective Validation Ledger records declared timing and internal
+- Prospective Validation Ledger records declared timing, coverage, and internal
   consistency; `eligible` does not prove source truth or statistical power.
+  Check both `status` and `coverage`: an eligible legacy bundle can still have
+  `not_declared` coverage, and accepted entry counts do not override a rejected
+  bundle-level coverage check.
 - Decision Evidence Ledger binds the decision payload to exact digests; it
   does not fetch or authenticate the upstream artifacts. A later reviewer must
   recompute the two `artifact_sha256` values against retained copies.
+
+For a runnable demonstration of that last distinction, see DEL's
+[synthetic file-recheck example](https://github.com/liver-detox/decision-evidence-ledger/tree/v0.2.2/examples).
+A retained payload can still verify after a referenced file has changed. Only
+an actual new file check can establish whether its bytes still match; the
+caller then decides whether to append a correction or withdrawal.
 
 Everything in this walkthrough is synthetic. It contains no account, holding,
 trade, provider credential, personal record, private path, or licensed dataset.

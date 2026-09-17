@@ -47,7 +47,9 @@ describing whether the bundle is eligible or rejected.
 A bundle directory contains three files:
 
 - `plan.json` declares the experiment, cutoff, sample IDs, and snapshot digest.
-- `snapshot.json` declares the snapshot timing and record count.
+- `snapshot.json` declares the snapshot timing and record count, and can
+  optionally declare coverage of the evidence expected in this validation
+  round.
 - `ledger.jsonl` records one compact JSON object per evidence entry.
 
 ### Eligible and rejected receipts
@@ -75,9 +77,60 @@ before the cutoff is not enough when its evidence arrived after it. Rejection
 does not relax the cutoff or rewrite history—retain the bundle and receipt,
 then include the evidence in the next defined validation round when applicable.
 
+### A coverage-declaration rejection path
+
+`snapshot.json` may contain a `coverage` object that states whether the
+snapshot's source collection is complete for this round. It is optional so
+older bundles remain usable; their receipts say `"state":"not_declared"`,
+which is not a claim that the source was complete.
+
+The fully synthetic incomplete-coverage fixture can be created and verified
+like this:
+
+```bash
+cp -R examples/SYNTHETIC_incomplete_coverage_draft demo/incomplete-draft
+prospective-ledger create demo/incomplete-draft --out demo/incomplete-bundle
+prospective-ledger verify demo/incomplete-bundle --out demo/incomplete-receipt.json || true
+python -m json.tool demo/incomplete-receipt.json
+```
+
+It writes a rejected receipt with `COVERAGE_INCOMPLETE`. This is a global gate,
+so timely ledger entries may still appear in `accepted_count`; always decide
+from `status` and `violations`.
+
+For a `complete` declaration, provide an explicit `through` timestamp no later
+than `snapshot.as_of` and an `expected_entry_count`. That count is the declared
+number of ledger entries expected for the round; it is not `snapshot.record_count`.
+Zero is valid when no entries are expected. A too-early `through` produces
+`COVERAGE_BEFORE_CUTOFF`, and a count mismatch produces
+`COVERAGE_COUNT_MISMATCH`. An `incomplete` declaration requires `through` and
+rejects with `COVERAGE_INCOMPLETE`; an `unavailable` declaration has no other
+fields and rejects with `SOURCE_UNAVAILABLE`.
+
+### Before a real bundle
+
+- Fix the round's cutoff and record event and arrival timestamps with their
+  original offsets. Do not backfill `arrived_at` or move the cutoff to turn a
+  rejected item eligible.
+- Choose `complete`, `incomplete`, or `unavailable` deliberately. Coverage is
+  the caller's declaration; this tool checks its shape and its relationship to
+  the supplied bundle, not whether every source was actually obtained.
+- Retain the declared input files and resulting receipt together so a reviewer
+  can recompute their digests and, if needed, include later evidence in the
+  next defined round.
+
+### Upgrading receipts to 0.3.0
+
+Every 0.3.0 receipt adds a top-level `coverage` object. Its `receipt_digest`
+therefore differs from the same v0.2 input, even when coverage was not
+declared; legacy inputs receive `{"state":"not_declared"}`. Keep existing
+v0.2 receipts as historical records and do not compare their digest to a
+newly generated v0.3.0 receipt without accounting for the tool version and
+the added field.
+
 ## When a bundle is rejected
 
-The verifier can report these six codes:
+The verifier can report these ten codes:
 
 - `DIGEST_MISMATCH`
 - `LEDGER_GAP`
@@ -85,6 +138,10 @@ The verifier can report these six codes:
 - `UNKNOWN_SAMPLE`
 - `POST_CUTOFF_EVENT`
 - `LATE_ARRIVAL`
+- `COVERAGE_INCOMPLETE`
+- `SOURCE_UNAVAILABLE`
+- `COVERAGE_BEFORE_CUTOFF`
+- `COVERAGE_COUNT_MISMATCH`
 
 ### Common local failures
 
@@ -117,8 +174,9 @@ Prospective Validation Ledger is licensed under the [Apache License 2.0](LICENSE
 
 ## Boundaries
 
-This local check verifies declared timing and internal consistency, not trusted
-timestamps, source truth, model quality, investment analysis, or adversarial
+This local check verifies declared timing and internal consistency, including a
+coverage declaration; it does not measure source completeness or prove source
+truth, trusted timestamps, model quality, investment analysis, or adversarial
 resource limits. Fixtures are synthetic; no payload upload, network, account,
 or execution adapter is included. Use pseudonymous IDs and do not commit real
 or licensed data; see [DATA_POLICY.md](DATA_POLICY.md).

@@ -36,6 +36,15 @@ class Snapshot:
     raw: dict[str, Any]
     as_of: datetime
     record_count: int
+    coverage: "Coverage | None" = None
+
+
+@dataclass(frozen=True)
+class Coverage:
+    state: str
+    through_text: str | None
+    through: datetime | None
+    expected_entry_count: int | None
 
 
 @dataclass(frozen=True)
@@ -83,7 +92,8 @@ _PLAN_FIELDS = frozenset(
 _SNAPSHOT_FIELDS = frozenset(
     {"schema_version", "as_of", "record_count", "source_digest"}
 )
-_SNAPSHOT_OPTIONAL_FIELDS = frozenset({"field_digest"})
+_SNAPSHOT_OPTIONAL_FIELDS = frozenset({"field_digest", "coverage"})
+_COVERAGE_STATES = frozenset({"complete", "incomplete", "unavailable"})
 _ENTRY_FIELDS = frozenset(
     {
         "entry_id",
@@ -255,7 +265,71 @@ def _parse_snapshot(raw: dict[str, Any]) -> Snapshot:
     _digest(raw, "source_digest", filename)
     if "field_digest" in raw:
         _digest(raw, "field_digest", filename)
-    return Snapshot(raw=raw, as_of=as_of, record_count=record_count)
+    coverage = _parse_coverage(raw["coverage"]) if "coverage" in raw else None
+    if coverage is not None and coverage.through is not None and coverage.through > as_of:
+        raise StructuralError("snapshot.json coverage through is later than as_of")
+    return Snapshot(
+        raw=raw,
+        as_of=as_of,
+        record_count=record_count,
+        coverage=coverage,
+    )
+
+
+def _parse_coverage(value: Any) -> Coverage:
+    filename = "snapshot.json coverage"
+    if not isinstance(value, dict):
+        raise StructuralError(f"{filename} must be an object")
+    state = value.get("state")
+    if not isinstance(state, str) or state not in _COVERAGE_STATES:
+        raise StructuralError(
+            f"{filename} state must be complete, incomplete, or unavailable"
+        )
+
+    fields_by_state = {
+        "complete": frozenset({"state", "through", "expected_entry_count"}),
+        "incomplete": frozenset({"state", "through"}),
+        "unavailable": frozenset({"state"}),
+    }
+    fields = fields_by_state[state]
+    unexpected = set(value) - fields
+    if unexpected:
+        raise StructuralError(f"{filename} has unknown field")
+    missing = fields - set(value)
+    if missing:
+        raise StructuralError(f"{filename} is missing {sorted(missing)[0]}")
+
+    if state == "unavailable":
+        return Coverage(
+            state=state,
+            through_text=None,
+            through=None,
+            expected_entry_count=None,
+        )
+
+    through_text = _non_empty_string(value, "through", filename)
+    through = _timestamp(value, "through", filename)
+    if state == "incomplete":
+        return Coverage(
+            state=state,
+            through_text=through_text,
+            through=through,
+            expected_entry_count=None,
+        )
+
+    expected_entry_count = value["expected_entry_count"]
+    if isinstance(expected_entry_count, bool) or not isinstance(expected_entry_count, int):
+        raise StructuralError(f"{filename} expected_entry_count must be an integer")
+    if expected_entry_count < 0:
+        raise StructuralError(
+            f"{filename} expected_entry_count must be non-negative"
+        )
+    return Coverage(
+        state=state,
+        through_text=through_text,
+        through=through,
+        expected_entry_count=expected_entry_count,
+    )
 
 
 def _parse_entry(raw: dict[str, Any], line_number: int) -> LedgerEntry:

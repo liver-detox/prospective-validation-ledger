@@ -69,6 +69,18 @@ def verify_bundle(bundle: Bundle, tool_version: str) -> dict[str, Any]:
             )
         expected_previous = entry.entry_digest
 
+    coverage = bundle.snapshot.coverage
+    if coverage is not None:
+        if coverage.state == "incomplete":
+            violations.append(_violation("COVERAGE_INCOMPLETE", None, None))
+        elif coverage.state == "unavailable":
+            violations.append(_violation("SOURCE_UNAVAILABLE", None, None))
+        else:
+            if coverage.through < bundle.plan.as_of:
+                violations.append(_violation("COVERAGE_BEFORE_CUTOFF", None, None))
+            if coverage.expected_entry_count != len(bundle.entries):
+                violations.append(_violation("COVERAGE_COUNT_MISMATCH", None, None))
+
     violations.sort(key=_violation_key)
     rejected_lines = {
         item["entry_index"]
@@ -81,6 +93,7 @@ def verify_bundle(bundle: Bundle, tool_version: str) -> dict[str, Any]:
         "status": "rejected" if violations else "eligible",
         "experiment_id": bundle.plan.experiment_id,
         "rule_version": bundle.plan.rule_version,
+        "coverage": _coverage_receipt(bundle),
         "input_digests": {
             "plan": bundle.plan_digest,
             "snapshot": bundle.snapshot_digest,
@@ -95,3 +108,15 @@ def verify_bundle(bundle: Bundle, tool_version: str) -> dict[str, Any]:
     }
     receipt["receipt_digest"] = sha256_json(receipt)
     return receipt
+
+
+def _coverage_receipt(bundle: Bundle) -> dict[str, Any]:
+    coverage = bundle.snapshot.coverage
+    if coverage is None:
+        return {"state": "not_declared"}
+    result: dict[str, Any] = {"state": coverage.state}
+    if coverage.through_text is not None:
+        result["through"] = coverage.through_text
+    if coverage.expected_entry_count is not None:
+        result["expected_entry_count"] = coverage.expected_entry_count
+    return result

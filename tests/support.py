@@ -11,15 +11,22 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
 
-def write_bundle(root: Path, entries: list[dict[str, Any]] | None = None) -> Path:
+def write_bundle(
+    root: Path,
+    entries: list[dict[str, Any]] | None = None,
+    coverage: dict[str, Any] | None = None,
+    record_count: int = 2,
+) -> Path:
     bundle = root / "bundle"
     bundle.mkdir()
     snapshot = {
         "schema_version": "1",
         "as_of": "2026-08-15T00:00:00Z",
-        "record_count": 2,
+        "record_count": record_count,
         "source_digest": "0" * 64,
     }
+    if coverage is not None:
+        snapshot["coverage"] = coverage
     plan = {
         "schema_version": "1",
         "experiment_id": "SYNTHETIC-DEMO-001",

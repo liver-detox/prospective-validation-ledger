@@ -1,12 +1,11 @@
 {
   "schema_version": "1",
-  "experiment_id": "SYNTHETIC-DEMO-001",
+  "experiment_id": "SYNTHETIC-INCOMPLETE-COVERAGE-001",
   "rule_version": "1",
   "frozen_at": "2026-08-01T00:00:00Z",
   "as_of": "2026-08-15T00:00:00Z",
   "sample_ids": [
     "sample-A",
     "sample-B"
-  ],
-  "snapshot_digest": "982cb51b105709d17a10a202b8caec68a6d9236a8620b04d5f5c073436f65e53"
+  ]
 }

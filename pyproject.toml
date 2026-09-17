@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prospective-validation-ledger"
-version = "0.2.0"
+version = "0.3.0"
 description = "Verify declared point-in-time sample eligibility and late-arrival evidence."
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -39,7 +39,18 @@ where = ["src"]
   "examples/SYNTHETIC_late_arrival/snapshot.json",
   "examples/SYNTHETIC_late_arrival/ledger.jsonl",
 ]
+"share/prospective-validation-ledger/examples/SYNTHETIC_incomplete_coverage_draft" = [
+  "examples/SYNTHETIC_incomplete_coverage_draft/plan.json",
+  "examples/SYNTHETIC_incomplete_coverage_draft/snapshot.json",
+  "examples/SYNTHETIC_incomplete_coverage_draft/ledger.jsonl",
+]
+"share/prospective-validation-ledger/examples/SYNTHETIC_incomplete_coverage" = [
+  "examples/SYNTHETIC_incomplete_coverage/plan.json",
+  "examples/SYNTHETIC_incomplete_coverage/snapshot.json",
+  "examples/SYNTHETIC_incomplete_coverage/ledger.jsonl",
+]
 "share/prospective-validation-ledger/examples" = [
   "examples/SYNTHETIC_expected_receipt.json",
   "examples/SYNTHETIC_late_arrival_expected_receipt.json",
+  "examples/SYNTHETIC_incomplete_coverage_expected_receipt.json",
 ]

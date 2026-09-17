@@ -1,6 +1,6 @@
 {
   "as_of": "2026-08-15T00:00:00Z",
-  "experiment_id": "SYNTHETIC-LATE-ARRIVAL-001",
+  "experiment_id": "SYNTHETIC-INCOMPLETE-COVERAGE-001",
   "frozen_at": "2026-08-01T00:00:00Z",
   "rule_version": "1",
   "sample_ids": [
@@ -8,5 +8,5 @@
     "sample-B"
   ],
   "schema_version": "1",
-  "snapshot_digest": "982cb51b105709d17a10a202b8caec68a6d9236a8620b04d5f5c073436f65e53"
+  "snapshot_digest": "f10cc0c8298dbeb1513b8a90b56729764bc6b1d33af622d63095d0e0f728e3f8"
 }

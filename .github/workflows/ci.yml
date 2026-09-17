@@ -30,6 +30,12 @@ jobs:
           fi
           cmp examples/SYNTHETIC_late_arrival_expected_receipt.json "$RUNNER_TEMP/late-receipt.json"
       - run: |
+          if prospective-ledger verify examples/SYNTHETIC_incomplete_coverage --out "$RUNNER_TEMP/incomplete-receipt.json"; then
+            echo "incomplete-coverage fixture unexpectedly passed" >&2
+            exit 1
+          fi
+          cmp examples/SYNTHETIC_incomplete_coverage_expected_receipt.json "$RUNNER_TEMP/incomplete-receipt.json"
+      - run: |
           package_source="$RUNNER_TEMP/package-source"
           mkdir "$package_source"
           cp -R README.md DATA_POLICY.md LICENSE MANIFEST.in pyproject.toml src examples "$package_source"
@@ -47,6 +53,9 @@ jobs:
               "examples/SYNTHETIC_late_arrival_draft/ledger.jsonl",
               "examples/SYNTHETIC_late_arrival/ledger.jsonl",
               "examples/SYNTHETIC_late_arrival_expected_receipt.json",
+              "examples/SYNTHETIC_incomplete_coverage_draft/ledger.jsonl",
+              "examples/SYNTHETIC_incomplete_coverage/ledger.jsonl",
+              "examples/SYNTHETIC_incomplete_coverage_expected_receipt.json",
           }
           with ZipFile(wheel) as archive:
               names = set(archive.namelist())
